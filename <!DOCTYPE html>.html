@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Vibrant Password Generator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: linear-gradient(135deg, #ff4d4d, #ffbb33, #33ccff);
+        background-size: 300% 300%;
+        animation: bgAnim 10s infinite alternate ease-in-out;
+        color: white;
+        padding: 20px;
+    }
+
+    @keyframes bgAnim {
+        0% { background-position: 0% 50%; }
+        100% { background-position: 100% 50%; }
+    }
+
+    .container {
+        max-width: 600px;
+        margin: auto;
+        background: rgba(0,0,0,0.35);
+        padding: 20px;
+        border-radius: 15px;
+        backdrop-filter: blur(10px);
+    }
+
+    h1 {
+        text-align: center;
+        font-size: 30px;
+        margin-bottom: 10px;
+    }
+
+    label {
+        font-size: 16px;
+        display: block;
+        margin-top: 10px;
+    }
+
+    input[type="checkbox"], input[type="number"] {
+        margin-right: 5px;
+    }
+
+    button {
+        width: 100%;
+        padding: 12px;
+        background: #00eaff;
+        border: none;
+        border-radius: 10px;
+        font-size: 18px;
+        margin-top: 15px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background: #00bcd4;
+    }
+
+    .password-box {
+        margin-top: 20px;
+        background: rgba(255,255,255,0.12);
+        padding: 15px;
+        border-radius: 10px;
+    }
+
+    .generated {
+        font-family: monospace;
+        font-size: 18px;
+        word-break: break-all;
+    }
+
+    .copy-btn {
+        background: #4cff79;
+        margin-top: 10px;
+        font-size: 16px;
+    }
+
+    .strength {
+        margin-top: 15px;
+        padding: 10px;
+        border-radius: 8px;
+        font-weight: bold;
+        text-align: center;
+    }
+
+    .history-box {
+        margin-top: 20px;
+        padding: 10px;
+        background: rgba(255,255,255,0.15);
+        border-radius: 10px;
+        max-height: 150px;
+        overflow-y: auto;
+    }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>Vibrant Password Generator 🔐</h1>
+
+    <label><input type="checkbox" id="lower" checked> Lowercase (a-z)</label>
+    <label><input type="checkbox" id="upper" checked> Uppercase (A-Z)</label>
+    <label><input type="checkbox" id="numbers" checked> Numbers (0-9)</label>
+    <label><input type="checkbox" id="symbols" checked> Symbols (!@#$%)</label>
+
+    <label>Password Length:</label>
+    <input type="number" id="length" value="12" min="4" max="50" style="width: 100%; padding: 8px; border-radius: 8px;">
+
+    <button onclick="generatePassword()">Generate Password</button>
+
+    <div class="password-box">
+        <div class="generated" id="output">Your password will appear here...</div>
+        <button class="copy-btn" onclick="copyPassword()">Copy Password</button>
+        <div id="strength" class="strength"></div>
+    </div>
+
+    <div class="history-box" id="history">
+        <strong>History:</strong><br>
+    </div>
+</div>
+
+<script>
+    function generatePassword() {
+        let lower = "abcdefghijklmnopqrstuvwxyz";
+        let upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        let numbers = "0123456789";
+        let symbols = "!@#$%^&*()_+{}[]<>?";
+
+        let chars = "";
+        if (document.getElementById("lower").checked) chars += lower;
+        if (document.getElementById("upper").checked) chars += upper;
+        if (document.getElementById("numbers").checked) chars += numbers;
+        if (document.getElementById("symbols").checked) chars += symbols;
+
+        let length = document.getElementById("length").value;
+
+        if (chars === "") {
+            alert("Select at least one character type!");
+            return;
+        }
+
+        let password = "";
+        for (let i = 0; i < length; i++) {
+            password += chars[Math.floor(Math.random() * chars.length)];
+        }
+
+        document.getElementById("output").innerText = password;
+        checkStrength(password);
+        addToHistory(password);
+    }
+
+    function copyPassword() {
+        let text = document.getElementById("output").innerText;
+        navigator.clipboard.writeText(text);
+        alert("Password Copied!");
+    }
+
+    function checkStrength(pw) {
+        let score = 0;
+        if (pw.length >= 8) score++;
+        if (/[A-Z]/.test(pw)) score++;
+        if (/[a-z]/.test(pw)) score++;
+        if (/[0-9]/.test(pw)) score++;
+        if (/[^A-Za-z0-9]/.test(pw)) score++;
+
+        let strength = document.getElementById("strength");
+
+        if (score <= 2) {
+            strength.style.background = "#ff4444";
+            strength.innerText = "Weak Password";
+        } else if (score == 3) {
+            strength.style.background = "#ffaa22";
+            strength.innerText = "Moderate Password";
+        } else {
+            strength.style.background = "#22dd66";
+            strength.innerText = "Strong Password";
+        }
+    }
+
+    function addToHistory(pw) {
+        let box = document.getElementById("history");
+        box.innerHTML += pw + "<br>";
+    }
+</script>
+
+</body>
+</html>
