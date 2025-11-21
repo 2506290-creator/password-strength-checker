@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Password Strength Checker</title>
+  <style>
+    :root{
+      --bg: #0f1724;
+      --card: #0b1220;
+      --muted: #9aa4b2;
+      --accent: #6ee7b7;
+      --danger: #ff7a7a;
+      --glass: rgba(255,255,255,0.03);
+    }
+    *{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    body{min-height:100vh;margin:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#071022 0%,#07192b 100%);color:#e6eef6}
+    .card{width:min(720px,96%);background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.04);padding:22px;border-radius:14px;box-shadow:0 8px 30px rgba(2,6,23,0.6)}
+    h1{margin:0 0 6px;font-size:20px}
+    p.lead{margin:0 0 18px;color:var(--muted);font-size:13px}
+
+    .row{display:flex;gap:16px}
+    .col{flex:1}
+
+    label{display:block;font-size:13px;margin-bottom:8px;color:var(--muted)}
+    .input-wrap{display:flex;align-items:center;background:var(--glass);border-radius:10px;padding:8px;border:1px solid rgba(255,255,255,0.03)}
+    input[type="password"], input[type="text"]{flex:1;border:0;background:transparent;padding:8px 10px;color:inherit;font-size:15px;outline:none}
+    button.icon{background:transparent;border:0;color:var(--muted);padding:6px;border-radius:8px;cursor:pointer}
+
+    .meter{height:12px;background:rgba(255,255,255,0.04);border-radius:8px;overflow:hidden;margin-top:10px}
+    .meter > span{display:block;height:100%;width:0%;background:linear-gradient(90deg,#f97316,#84cc16);transition:width .28s ease;background-size:200% 100%}
+    .score-text{margin-top:8px;font-weight:600}
+
+    .criteria{margin-top:14px;display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+    .crit{display:flex;gap:8px;align-items:center;padding:8px;border-radius:8px;background:rgba(255,255,255,0.01)}
+    .dot{width:12px;height:12px;border-radius:50%;flex:0 0 12px;background:rgba(255,255,255,0.06)}
+    .good{background:linear-gradient(180deg,#34d399,#059669)}
+    .bad{background:linear-gradient(180deg,#fca5a5,#ef4444)}
+    .neutral{background:rgba(255,255,255,0.06)}
+    .crit small{color:var(--muted);font-size:12px}
+
+    .tools{display:flex;gap:8px;margin-top:12px}
+    .btn{padding:8px 10px;border-radius:10px;border:0;background:rgba(255,255,255,0.03);color:var(--muted);cursor:pointer}
+
+    .result-area{margin-top:14px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);font-size:13px;color:var(--muted)}
+
+    footer{margin-top:14px;font-size:12px;color:var(--muted);text-align:right}
+
+    @media (max-width:600px){.criteria{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <main class="card" role="main">
+    <h1>Password Strength Checker</h1>
+    <p class="lead">Real-time strength meter (client-only). Shows score, checks criteria and gives tips to improve your password.</p>
+
+    <div>
+      <label for="pw">Enter password</label>
+      <div class="input-wrap">
+        <input id="pw" type="password" aria-describedby="pwhint" placeholder="Type a password..." autocomplete="off" />
+        <button id="toggle" class="icon" title="Show/Hide">👁️</button>
+        <button id="copyBtn" class="icon" title="Copy password">📋</button>
+      </div>
+      <div class="meter" aria-hidden="true"><span id="bar"></span></div>
+      <div class="row" style="margin-top:10px;align-items:center">
+        <div class="col">
+          <div class="score-text" id="scoreText">Strength: —</div>
+        </div>
+        <div style="width:1px;background:rgba(255,255,255,0.03);height:28px;margin-left:8px;margin-right:8px"></div>
+        <div style="flex:0 0 160px;text-align:right;color:var(--muted);font-size:13px">Entropy estimate: <strong id="entropy">—</strong></div>
+      </div>
+
+      <div class="criteria" aria-hidden="false">
+        <div class="crit" id="c-length"><div class="dot" id="d-length"></div><div><div>Minimum length (8+)</div><small id="s-length">Not met</small></div></div>
+        <div class="crit" id="c-upper"><div class="dot" id="d-upper"></div><div><div>Uppercase letter</div><small id="s-upper">Not met</small></div></div>
+        <div class="crit" id="c-lower"><div class="dot" id="d-lower"></div><div><div>Lowercase letter</div><small id="s-lower">Not met</small></div></div>
+        <div class="crit" id="c-number"><div class="dot" id="d-number"></div><div><div>Number</div><small id="s-number">Not met</small></div></div>
+        <div class="crit" id="c-symbol"><div class="dot" id="d-symbol"></div><div><div>Symbol (e.g. !@#$%)</div><small id="s-symbol">Not met</small></div></div>
+        <div class="crit" id="c-repeat"><div class="dot" id="d-repeat"></div><div><div>No long repeated sequences</div><small id="s-repeat">Not checked</small></div></div>
+      </div>
+
+      <div class="tools">
+        <button id="generate" class="btn">Generate Example Strong Password</button>
+        <button id="clear" class="btn">Clear</button>
+      </div>
+
+      <div class="result-area" id="hint">Tip: Use a long passphrase with mixed characters and avoid common words.</div>
+      <footer>Client-only demo • No data leaves your browser</footer>
+    </div>
+  </main>
+
+  <script>
+    // Elements
+    const pw = document.getElementById('pw');
+    const bar = document.getElementById('bar');
+    const scoreText = document.getElementById('scoreText');
+    const entropyEl = document.getElementById('entropy');
+    const hint = document.getElementById('hint');
+
+    const checks = {
+      length: {el:document.getElementById('s-length'), dot:document.getElementById('d-length')},
+      upper: {el:document.getElementById('s-upper'), dot:document.getElementById('d-upper')},
+      lower: {el:document.getElementById('s-lower'), dot:document.getElementById('d-lower')},
+      number: {el:document.getElementById('s-number'), dot:document.getElementById('d-number')},
+      symbol: {el:document.getElementById('s-symbol'), dot:document.getElementById('d-symbol')},
+      repeat: {el:document.getElementById('s-repeat'), dot:document.getElementById('d-repeat')}
+    };
+
+    // Utility: estimate entropy (bits) naive approximation
+    function estimateEntropy(pw){
+      if(!pw) return 0;
+      let pool = 0;
+      if(/[a-z]/.test(pw)) pool += 26;
+      if(/[A-Z]/.test(pw)) pool += 26;
+      if(/[0-9]/.test(pw)) pool += 10;
+      if(/[^A-Za-z0-9]/.test(pw)) pool += 32; // rough symbol count
+      // entropy per char = log2(pool)
+      const perChar = pool>0 ? Math.log2(pool) : 0;
+      // crude entropy: perChar * length, but penalize repeated sequences
+      const repeats = longestRepeat(pw);
+      const penalty = Math.max(0, repeats - 2) * 0.8; // small penalty per long repeat
+      const entropy = Math.max(0, (perChar * pw.length) - penalty);
+      return Math.round(entropy);
+    }
+
+    // find longest repeated substring length (naive)
+    function longestRepeat(s){
+      let max = 0;
+      for(let i=0;i<s.length;i++){
+        for(let j=i+1;j<s.length;j++){
+          let k=0;
+          while(j+k<s.length && s[i+k] === s[j+k]) k++;
+          if(k>max) max=k;
+        }
+      }
+      return max;
+    }
+
+    function updateUI(pwVal){
+      // checks
+      const hasUpper = /[A-Z]/.test(pwVal);
+      const hasLower = /[a-z]/.test(pwVal);
+      const hasNumber = /[0-9]/.test(pwVal);
+      const hasSymbol = /[^A-Za-z0-9]/.test(pwVal);
+      const sufficientLength = pwVal.length >= 8;
+      const repeats = longestRepeat(pwVal);
+      const repeatOk = repeats < 4; // allow small repeats
+
+      setCheck('length', sufficientLength);
+      setCheck('upper', hasUpper);
+      setCheck('lower', hasLower);
+      setCheck('number', hasNumber);
+      setCheck('symbol', hasSymbol);
+      setCheck('repeat', repeatOk, repeats);
+
+      // entropy and score mapping
+      const entropy = estimateEntropy(pwVal);
+      entropyEl.textContent = entropy ? entropy + ' bits' : '—';
+
+      let score = 0;
+      if(sufficientLength) score += 1;
+      if(hasUpper) score += 1;
+      if(hasLower) score += 1;
+      if(hasNumber) score += 1;
+      if(hasSymbol) score += 1;
+      // reward longer passwords
+      if(pwVal.length >= 12) score += 1;
+      if(entropy > 60) score += 1;
+
+      // normalize to 0..100
+      const pct = Math.min(100, Math.round((score / 8) * 100));
+      bar.style.width = pct + '%';
+      // color shift by setting background position
+      bar.style.backgroundPosition = pct + '% 0%';
+
+      const labels = ["Very weak","Weak","Fair","Good","Strong","Very strong","Excellent","Exceptional"];
+      const label = labels[Math.min(labels.length-1, Math.floor((pct/100)*labels.length))];
+
+      scoreText.textContent = pwVal ? `Strength: ${label} (${pct}%)` : 'Strength: —';
+
+      // hint messages
+      if(!pwVal) hint.textContent = 'Tip: Use a long passphrase with mixed characters and avoid common words.';
+      else if(pct < 25) hint.textContent = 'Too weak — try adding length and using a mix of letters, numbers and symbols.';
+      else if(pct < 55) hint.textContent = 'Getting better — add more length or uncommon symbols to raise entropy.';
+      else if(pct < 80) hint.textContent = 'Good — consider using a longer passphrase for maximum security.';
+      else hint.textContent = 'Great! This is a strong password. Store it in a password manager.';
+    }
+
+    function setCheck(name, pass, extra){
+      const c = checks[name];
+      if(!c) return;
+      c.el.textContent = pass ? 'Met' : (typeof extra === 'number' ? `${extra}` : 'Not met');
+      c.dot.className = pass ? 'dot good' : 'dot bad';
+      if(name==='repeat' && pass) c.el.textContent = 'OK';
+    }
+
+    // events
+    pw.addEventListener('input', e => updateUI(e.target.value));
+
+    document.getElementById('toggle').addEventListener('click', ()=>{
+      if(pw.type === 'password'){ pw.type = 'text'; document.getElementById('toggle').textContent = '🙈'; }
+      else { pw.type = 'password'; document.getElementById('toggle').textContent = '👁️'; }
+    });
+
+    document.getElementById('copyBtn').addEventListener('click', async ()=>{
+      try{
+        await navigator.clipboard.writeText(pw.value || '');
+        const t = document.getElementById('copyBtn'); t.textContent = '✅'; setTimeout(()=>{t.textContent='📋'},900);
+      }catch(e){alert('Copy failed — your browser may block clipboard access.');}
+    });
+
+    document.getElementById('clear').addEventListener('click', ()=>{ pw.value=''; updateUI(''); pw.focus(); });
+
+    document.getElementById('generate').addEventListener('click', ()=>{
+      const pass = generatePassword(16);
+      pw.value = pass; updateUI(pass);
+    });
+
+    function generatePassword(length=12){
+      const lower = 'abcdefghijklmnopqrstuvwxyz';
+      const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const nums = '0123456789';
+      const syms = '!@#$%^&*()-_=+[]{};:,.<>?';
+      const all = lower + upper + nums + syms;
+      let out = '';
+      // ensure variety
+      out += lower[Math.floor(Math.random()*lower.length)];
+      out += upper[Math.floor(Math.random()*upper.length)];
+      out += nums[Math.floor(Math.random()*nums.length)];
+      out += syms[Math.floor(Math.random()*syms.length)];
+      for(let i=out.length;i<length;i++) out += all[Math.floor(Math.random()*all.length)];
+      // shuffle
+      out = out.split('').sort(()=>Math.random()-0.5).join('');
+      return out;
+    }
+
+    // init
+    updateUI('');
+  </script>
+</body>
+</html>
